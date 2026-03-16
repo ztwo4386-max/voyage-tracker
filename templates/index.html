@@ -257,6 +257,49 @@ body::after {
 }
 .nerd-emoji.show { opacity:1; }
 
+/* ── MAP CONTROLS START/STOP ── */
+.map-controls {
+  position:absolute; bottom:14px; right:14px; z-index:500;
+  display:flex; flex-direction:column; align-items:flex-end; gap:6px;
+}
+.btn-start {
+  padding:10px 18px;
+  background: var(--accent); border:none; color:#000;
+  font-family:'Share Tech Mono',monospace; font-size:12px;
+  font-weight:700; letter-spacing:2px; cursor:pointer;
+  box-shadow: 0 0 16px #00e87a88;
+  transition: all 0.2s;
+}
+.btn-start:active { transform:scale(0.97); }
+.btn-stop {
+  padding:10px 18px;
+  background: var(--danger); border:none; color:#fff;
+  font-family:'Share Tech Mono',monospace; font-size:12px;
+  font-weight:700; letter-spacing:2px; cursor:pointer;
+  box-shadow: 0 0 16px #ff3d3d88;
+  transition: all 0.2s;
+}
+.btn-stop:active { transform:scale(0.97); }
+.sesi-status {
+  font-family:'Share Tech Mono',monospace; font-size:9px;
+  color:var(--dim); text-align:right; letter-spacing:1px;
+  background:rgba(7,9,13,0.8); padding:3px 8px;
+}
+.sesi-status.active { color:var(--accent); }
+
+/* Trip status card */
+.trip-status-card {
+  background:var(--card); border:1px solid var(--border);
+  border-left:3px solid var(--dim); padding:10px 12px;
+  margin-bottom:8px; transition: border-color 0.3s;
+}
+.trip-status-card.active { border-left-color:var(--accent); }
+.trip-status-text {
+  font-family:'Share Tech Mono',monospace; font-size:10px;
+  color:var(--dim); line-height:1.6;
+}
+.trip-status-text.active { color:var(--accent); }
+
 /* ── TAB SECTION ── */
 .tab-bar {
   display:flex; background:var(--panel);
@@ -443,6 +486,13 @@ body::after {
       <span id="mb-pos">-- , --</span><br>
       Titik: <span id="mb-titik">0</span> · Sesi: <span id="mb-sesi">--</span>
     </div>
+
+    <!-- Tombol START/STOP di atas peta -->
+    <div class="map-controls">
+      <button class="btn-start" id="btn-start" onclick="mulaiPerjalanan()">▶ MULAI</button>
+      <button class="btn-stop" id="btn-stop" onclick="stopPerjalanan()" style="display:none">◼ STOP</button>
+      <div class="sesi-status" id="sesi-status">Belum ada perjalanan aktif</div>
+    </div>
     <div class="waiting-overlay" id="waiting-overlay">
       <div class="radar-wrap">
         <div class="radar-glow"></div>
@@ -534,6 +584,15 @@ body::after {
 
   <!-- Tab: Kontrol -->
   <div class="tab-content" id="tab-kontrol">
+    <div class="section-head">Perjalanan</div>
+    <div class="trip-status-card" id="trip-status-card">
+      <div class="trip-status-text" id="trip-status-text">Belum ada perjalanan aktif</div>
+    </div>
+    <div class="btn-row" style="margin-bottom:12px">
+      <button class="btn primary" id="btn-start2" onclick="mulaiPerjalanan()">▶ Mulai</button>
+      <button class="btn danger" id="btn-stop2" onclick="stopPerjalanan()" disabled style="opacity:0.4">◼ Stop</button>
+    </div>
+
     <div class="section-head">Interval Update</div>
     <div class="interval-row">
       <span class="interval-lbl">Kirim GPS tiap</span>
@@ -546,11 +605,9 @@ body::after {
       </select>
     </div>
 
-    <div class="section-head">Sesi Voyage</div>
+    <div class="section-head">Data</div>
     <div class="btn-row">
-      <button class="btn primary" onclick="sesiBaruPrompt()">▶ Baru</button>
-      <button class="btn" onclick="tutupSesi()">◼ Tutup</button>
-      <button class="btn danger" onclick="resetSemua()">⬛ Reset</button>
+      <button class="btn danger" onclick="resetSemua()">⬛ Reset Semua</button>
     </div>
   </div>
 
@@ -642,6 +699,14 @@ function updateUI(d) {
   setEl('mb-titik',  d.rute ? d.rute.length : 0);
   setEl('mb-sesi',   sesi.nama||'--');
 
+  // Sync tombol state dari server (kalau reload halaman)
+  if (sesi.aktif && !sesiAktif) {
+    namaPerjalananAktif = sesi.nama || '';
+    updateTombolSesi(true);
+  } else if (!sesi.aktif && sesiAktif) {
+    updateTombolSesi(false);
+  }
+
   // Peta
   const ll = [t.lat, t.lon];
   if (!marker) {
@@ -651,14 +716,16 @@ function updateUI(d) {
     marker.setLatLng(ll);
   }
 
-  // Rute
-  if (d.rute && d.rute.length > 1) {
+  // Rute — hanya tampil kalau sesi aktif
+  if (sesi.aktif && d.rute && d.rute.length > 1) {
     const coords = d.rute.map(r => [r.lat, r.lon]);
     if (!polyline) {
       polyline = L.polyline(coords, {color:'#00b4ff', weight:2, opacity:0.7, dashArray:'5,4'}).addTo(map);
     } else {
       polyline.setLatLngs(coords);
     }
+  } else if (!sesi.aktif && polyline) {
+    // Sesi selesai — freeze rute, tidak hapus tapi tidak update lagi
   }
 }
 
@@ -717,20 +784,59 @@ async function setIntervalGPS() {
   });
 }
 
-async function sesiBaruPrompt() {
-  const nama = prompt('Nama sesi:', 'Voyage '+new Date().toLocaleDateString('id-ID'));
-  if (!nama) return;
+// ── STATE SESI ───────────────────────────────────────────────
+let sesiAktif = false;
+let namaPerjalananAktif = '';
+
+function updateTombolSesi(aktif) {
+  sesiAktif = aktif;
+
+  // Tombol di peta
+  const btnStart  = document.getElementById('btn-start');
+  const btnStop   = document.getElementById('btn-stop');
+  if (btnStart) btnStart.style.display = aktif ? 'none' : 'block';
+  if (btnStop)  btnStop.style.display  = aktif ? 'block' : 'none';
+
+  // Tombol di tab kontrol
+  const btnStart2 = document.getElementById('btn-start2');
+  const btnStop2  = document.getElementById('btn-stop2');
+  if (btnStart2) { btnStart2.disabled = aktif; btnStart2.style.opacity = aktif ? '0.4' : '1'; }
+  if (btnStop2)  { btnStop2.disabled = !aktif; btnStop2.style.opacity  = !aktif ? '0.4' : '1'; }
+
+  // Status text
+  const statusPeta  = document.getElementById('sesi-status');
+  const statusCard  = document.getElementById('trip-status-card');
+  const statusTeks  = document.getElementById('trip-status-text');
+
+  if (aktif) {
+    const mulaiStr = new Date().toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'});
+    if (statusPeta)  { statusPeta.textContent = '● ' + namaPerjalananAktif; statusPeta.classList.add('active'); }
+    if (statusCard)  statusCard.classList.add('active');
+    if (statusTeks)  { statusTeks.textContent = '● AKTIF\n' + namaPerjalananAktif; statusTeks.classList.add('active'); }
+  } else {
+    if (statusPeta)  { statusPeta.textContent = 'Belum ada perjalanan aktif'; statusPeta.classList.remove('active'); }
+    if (statusCard)  statusCard.classList.remove('active');
+    if (statusTeks)  { statusTeks.textContent = 'Belum ada perjalanan aktif'; statusTeks.classList.remove('active'); }
+  }
+}
+
+async function mulaiPerjalanan() {
+  const waktu = new Date().toLocaleDateString('id-ID') + ' ' + new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  namaPerjalananAktif = 'Perjalanan ' + waktu;
   await fetch('/api/sesi_baru', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({nama})
+    body: JSON.stringify({nama: namaPerjalananAktif})
   });
+  // Reset rute di peta
   if (polyline) { map.removeLayer(polyline); polyline=null; }
+  updateTombolSesi(true);
   fetchVoyageLog();
 }
 
-async function tutupSesi() {
-  if (!confirm('Tutup sesi aktif?')) return;
+async function stopPerjalanan() {
+  if (!confirm('Stop perjalanan sekarang?')) return;
   await fetch('/api/tutup_sesi', {method:'POST'});
+  updateTombolSesi(false);
   fetchVoyageLog();
 }
 
