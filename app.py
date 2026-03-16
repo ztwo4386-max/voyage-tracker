@@ -235,29 +235,34 @@ def update_esp32():
 @app.route("/api/live")
 def api_live():
     """Data terbaru untuk polling dashboard."""
-    conn, c = get_db()
+    try:
+        init_db()  # Pastikan tabel ada
+        conn, c = get_db()
 
-    # Titik terakhir
-    c.execute("SELECT * FROM titik_gps ORDER BY id DESC LIMIT 1")
-    terakhir = dict(c.fetchone() or {})
+        # Titik terakhir
+        c.execute("SELECT * FROM titik_gps ORDER BY id DESC LIMIT 1")
+        row = c.fetchone()
+        terakhir = dict(row) if row else {}
 
-    # Sesi aktif
-    c.execute("SELECT * FROM sesi_voyage WHERE aktif = 1 ORDER BY id DESC LIMIT 1")
-    sesi_row = c.fetchone()
-    sesi = dict(sesi_row) if sesi_row else {}
+        # Sesi aktif
+        c.execute("SELECT * FROM sesi_voyage WHERE aktif = 1 ORDER BY id DESC LIMIT 1")
+        sesi_row = c.fetchone()
+        sesi = dict(sesi_row) if sesi_row else {}
 
-    # Rute HANYA dari sesi aktif (filter by waktu mulai sesi)
-    rute = []
-    if sesi_row and sesi_row["mulai"]:
-        c.execute("""
-            SELECT lat, lon, kecepatan, timestamp FROM titik_gps
-            WHERE timestamp >= ?
-            ORDER BY id ASC LIMIT 200
-        """, (sesi_row["mulai"],))
-        rute = [dict(r) for r in c.fetchall()]
+        # Rute HANYA dari sesi aktif
+        rute = []
+        if sesi_row and sesi_row["mulai"]:
+            c.execute("""
+                SELECT lat, lon, kecepatan, timestamp FROM titik_gps
+                WHERE timestamp >= ?
+                ORDER BY id ASC LIMIT 200
+            """, (sesi_row["mulai"],))
+            rute = [dict(r) for r in c.fetchall()]
 
-    conn.close()
-    return jsonify({"terakhir": terakhir, "rute": rute, "sesi": sesi})
+        conn.close()
+        return jsonify({"terakhir": terakhir, "rute": rute, "sesi": sesi})
+    except Exception as e:
+        return jsonify({"error": str(e), "terakhir": {}, "rute": [], "sesi": {}}), 200
 
 
 # ── API: Log voyage semua sesi ──
@@ -323,17 +328,22 @@ def tutup_sesi():
 # ── API: Reset semua data ──
 @app.route("/api/reset", methods=["POST"])
 def reset_semua():
-    conn, c = get_db()
-    c.execute("DELETE FROM titik_gps")
-    c.execute("DELETE FROM log_jadwal")
-    c.execute("DELETE FROM sesi_voyage")
-    conn.commit()
-    conn.close()
-    return jsonify({"status": "ok", "pesan": "Semua data direset"})
+    try:
+        conn, c = get_db()
+        c.execute("DELETE FROM titik_gps")
+        c.execute("DELETE FROM log_jadwal")
+        c.execute("DELETE FROM sesi_voyage")
+        conn.commit()
+        conn.close()
+        return jsonify({"status": "ok", "pesan": "Semua data direset"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
+
+# Inisialisasi DB saat startup (Railway maupun lokal)
+init_db()
 
 if __name__ == "__main__":
-    init_db()
     print("✅ Database siap")
     print("🚀 Server jalan di http://localhost:5000")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
