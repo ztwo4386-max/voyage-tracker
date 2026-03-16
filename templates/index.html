@@ -251,8 +251,9 @@ body::after {
   z-index:30;
   transform:translate(-50%, -50%);
   filter: drop-shadow(0 0 10px #39ff14) brightness(1.1);
-  transition: opacity 0.15s;
   border-radius:50%;
+  /* fade-in cepat, fade-out lambat */
+  transition: opacity 0.1s ease-in;
 }
 .nerd-emoji.show { opacity:1; }
 
@@ -871,32 +872,49 @@ startSonar();
 
     el.style.top  = pos.top;
     el.style.left = pos.left;
+
+    // Muncul langsung (saat sweep lewat)
+    el.style.transition = 'opacity 0.1s ease-in';
     el.style.opacity = '1';
 
-    setTimeout(() => { el.style.opacity = '0'; }, 2000);
+    // Fade out lambat setelah 1.5 detik (mulai fade, selesai di 3 detik)
+    setTimeout(() => {
+      el.style.transition = 'opacity 1.5s ease-out';
+      el.style.opacity = '0';
+    }, 1500);
   }
 
   // Sweep = 3 detik (sesuai animasi CSS radarSpin 3s)
   // Tiap sweep: bunyi + emoji
-  setInterval(() => {
-    const overlay = document.getElementById('waiting-overlay');
-    if (!overlay || overlay.classList.contains('hidden')) return;
+  // Radar sweep = 3 detik (radarSpin 3s)
+  // Emoji muncul ~saat sweep nyampe posisi kanan (sekitar 0.8 detik setelah mulai putaran)
+  // Lalu fade out pelan sampai sweep berikutnya datang
 
-    sweepCount++;
-    bunyiSonar();
+  // Pertama kali: tunggu 0.8 detik (sweep sudah jalan sebentar)
+  setTimeout(() => {
     munculkanEmoji();
+    bunyiSonar();
 
-    // Ganti teks label biar lebih hidup
-    const labels = [
-      'SEARCHING FOR GPS',
-      'SCANNING SATELLITES',
-      'ACQUIRING SIGNAL',
-      'TRIANGULATING...',
-    ];
-    const txtEl = document.getElementById('radar-txt');
-    if (txtEl) txtEl.textContent = labels[sweepCount % labels.length];
+    // Lanjut tiap 3 detik pas
+    setInterval(() => {
+      const overlay = document.getElementById('waiting-overlay');
+      if (!overlay || overlay.classList.contains('hidden')) return;
 
-  }, 3000);
+      sweepCount++;
+      bunyiSonar();
+      munculkanEmoji();
+
+      const labels = [
+        'SEARCHING FOR GPS',
+        'SCANNING SATELLITES',
+        'ACQUIRING SIGNAL',
+        'TRIANGULATING...',
+      ];
+      const txtEl = document.getElementById('radar-txt');
+      if (txtEl) txtEl.textContent = labels[sweepCount % labels.length];
+
+    }, 3000);
+  }, 800);
 
   // Init audio saat user pertama kali tap/klik layar
   document.addEventListener('click', initAudio, {once: true});
