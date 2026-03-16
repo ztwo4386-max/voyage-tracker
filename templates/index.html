@@ -979,15 +979,15 @@ startSonar();
     el.style.top  = pos.top;
     el.style.left = pos.left;
 
-    // Muncul langsung (saat sweep lewat)
-    el.style.transition = 'opacity 0.1s ease-in';
+    // Muncul pelan (fade in 0.6 detik)
+    el.style.transition = 'opacity 0.6s ease-in';
     el.style.opacity = '1';
 
-    // Fade out lambat setelah 1.5 detik (mulai fade, selesai di 3 detik)
+    // Fade out mulai setelah 1.2 detik, durasi 0.8 detik — smooth cubic
     setTimeout(() => {
-      el.style.transition = 'opacity 1.5s ease-out';
+      el.style.transition = 'opacity 0.8s cubic-bezier(0.4, 0, 1, 1)';
       el.style.opacity = '0';
-    }, 1500);
+    }, 1200);
   }
 
   // Sweep = 3 detik (sesuai animasi CSS radarSpin 3s)
