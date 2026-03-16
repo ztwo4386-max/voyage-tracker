@@ -2,267 +2,261 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Voyage Tracker — Indocement PKL</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#07090d">
+<title>Voyage Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=DM+Sans:wght@300;400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root {
-  --bg:      #07090d;
-  --panel:   #0c1118;
-  --card:    #111820;
-  --border:  #1c2a1c;
-  --accent:  #00e87a;
-  --blue:    #00b4ff;
-  --warn:    #ffc400;
-  --danger:  #ff3d3d;
-  --text:    #ccd8cc;
-  --dim:     #3a5040;
-  --dimmer:  #1e2e1e;
-  --glow:    0 0 16px #00e87a33;
-}
-* { margin:0; padding:0; box-sizing:border-box; }
-body {
-  background:var(--bg);
-  color:var(--text);
-  font-family:'DM Sans',sans-serif;
-  height:100vh; overflow:hidden;
-  display:flex; flex-direction:column;
+  --bg:     #07090d;
+  --panel:  #0c1118;
+  --card:   #111820;
+  --border: #1c2a1c;
+  --accent: #00e87a;
+  --blue:   #00b4ff;
+  --warn:   #ffc400;
+  --danger: #ff3d3d;
+  --text:   #ccd8cc;
+  --dim:    #3a5040;
+  --dimmer: #1e2e1e;
 }
 
-/* ── SCANLINE ── */
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* Scanline */
 body::after {
   content:''; position:fixed; inset:0; pointer-events:none; z-index:9999;
-  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,232,122,0.012) 3px, rgba(0,232,122,0.012) 4px);
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,232,122,0.01) 3px, rgba(0,232,122,0.01) 4px);
 }
 
 /* ── TOPBAR ── */
 .topbar {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:0 20px; height:50px; flex-shrink:0;
-  background:var(--panel);
-  border-bottom:1px solid var(--border);
-  position:relative;
+  position: sticky; top:0; z-index:100;
+  display: flex; align-items:center; justify-content:space-between;
+  padding: 10px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
 }
 .topbar::after {
   content:''; position:absolute; bottom:0; left:0; right:0; height:1px;
-  background:linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
 }
-.brand { display:flex; align-items:center; gap:12px; }
+.brand { display:flex; align-items:center; gap:10px; }
 .brand-icon {
-  width:30px; height:30px; border:1.5px solid var(--accent);
+  width:28px; height:28px; border:1.5px solid var(--accent);
   display:flex; align-items:center; justify-content:center;
-  font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--accent);
-  box-shadow:var(--glow); animation:glowPulse 3s infinite;
+  font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--accent);
+  animation: glowPulse 3s infinite;
 }
-@keyframes glowPulse { 0%,100%{box-shadow:0 0 8px #00e87a22} 50%{box-shadow:0 0 20px #00e87a66} }
-.brand-name { font-family:'Bebas Neue',cursive; font-size:22px; letter-spacing:3px; color:var(--accent); }
-.brand-sub  { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--dim); letter-spacing:2px; }
+@keyframes glowPulse { 0%,100%{box-shadow:0 0 6px #00e87a22} 50%{box-shadow:0 0 16px #00e87a66} }
+.brand-name { font-family:'Bebas Neue',cursive; font-size:18px; letter-spacing:3px; color:var(--accent); }
+.brand-sub { font-size:8px; color:var(--dim); letter-spacing:1px; display:none; }
 
-.topbar-center {
-  display:flex; gap:24px; align-items:center;
-}
-.stat-top {
-  text-align:center;
-}
-.stat-top-val {
-  font-family:'Share Tech Mono',monospace;
-  font-size:16px; color:var(--blue); line-height:1;
-}
-.stat-top-lbl {
-  font-size:9px; color:var(--dim); letter-spacing:2px; text-transform:uppercase;
-}
-
-.topbar-right { display:flex; align-items:center; gap:16px; }
+.topbar-right { display:flex; align-items:center; gap:10px; }
 .badge {
-  display:flex; align-items:center; gap:6px;
-  font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--dim);
-  padding:4px 10px; border:1px solid var(--border);
+  display:flex; align-items:center; gap:5px;
+  font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--dim);
+  padding:3px 8px; border:1px solid var(--border);
 }
-.badge .dot { width:7px; height:7px; border-radius:50%; background:var(--danger); transition:background 0.3s; }
-.badge .dot.on { background:var(--accent); box-shadow:0 0 8px var(--accent); animation:blink 1.5s infinite; }
+.dot { width:6px; height:6px; border-radius:50%; background:var(--danger); transition:background 0.3s; }
+.dot.on { background:var(--accent); box-shadow:0 0 6px var(--accent); animation:blink 1.5s infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-.jam { font-family:'Share Tech Mono',monospace; font-size:14px; color:var(--accent); }
+.jam { font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--accent); }
 
-/* ── LAYOUT UTAMA ── */
-.main {
-  flex:1; display:grid;
-  grid-template-columns: 280px 1fr 300px;
-  overflow:hidden;
+/* ── SPEED HERO (mobile-first) ── */
+.speed-hero {
+  display: flex; align-items:center; justify-content:space-between;
+  padding: 12px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
 }
+.speed-big { font-family:'Bebas Neue',cursive; font-size:48px; color:var(--accent); line-height:1; }
+.speed-unit { font-size:9px; color:var(--dim); letter-spacing:2px; margin-top:2px; }
+.speed-right { flex:1; margin-left:16px; }
+.bar-wrap { height:5px; background:var(--dimmer); border-radius:3px; overflow:hidden; margin-bottom:6px; }
+.bar-fill {
+  height:100%; width:0%;
+  background: linear-gradient(90deg, var(--accent), var(--blue));
+  border-radius:3px; transition: width 1s ease;
+}
+.speed-ticks {
+  display:flex; justify-content:space-between;
+  font-family:'Share Tech Mono',monospace; font-size:7px; color:var(--dim);
+  margin-bottom:8px;
+}
+.mini-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+.mini-stat { text-align:center; }
+.mini-val { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--blue); line-height:1; }
+.mini-lbl { font-size:7px; color:var(--dim); letter-spacing:1px; text-transform:uppercase; }
 
-/* ── PANEL KIRI ── */
-.panel-left {
-  background:var(--panel);
-  border-right:1px solid var(--border);
-  display:flex; flex-direction:column;
-  overflow-y:auto; padding:14px; gap:14px;
+/* ── KOORDINAT ── */
+.coord-bar {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap:1px; background:var(--border);
+  border-bottom: 1px solid var(--border);
 }
-
-.section-head {
-  font-family:'Share Tech Mono',monospace;
-  font-size:9px; letter-spacing:3px; color:var(--dim);
-  text-transform:uppercase; display:flex; align-items:center; gap:8px;
-  margin-bottom:6px;
+.coord-item {
+  background:var(--card); padding:10px 14px;
 }
-.section-head::after { content:''; flex:1; height:1px; background:var(--border); }
-
-/* Koordinat */
-.coord-card {
-  background:var(--card); border:1px solid var(--border);
-  border-left:3px solid var(--accent); padding:12px;
-}
-.coord-row { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
-.coord-row:last-child { margin-bottom:0; }
-.coord-key { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--dim); }
+.coord-key { font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--dim); letter-spacing:2px; margin-bottom:3px; }
 .coord-val { font-family:'Share Tech Mono',monospace; font-size:13px; color:var(--accent); }
 .coord-val.empty { color:var(--dim); animation:shimmer 2s infinite; }
 @keyframes shimmer { 0%,100%{opacity:0.3} 50%{opacity:1} }
 
-/* Kecepatan */
-.speed-card {
-  background:var(--card); border:1px solid var(--border); padding:14px;
-  text-align:center;
+/* ── PETA ── */
+.map-wrap {
+  position: relative;
+  height: 280px;
 }
-.speed-big { font-family:'Bebas Neue',cursive; font-size:52px; color:var(--accent); line-height:1; }
-.speed-unit { font-size:10px; color:var(--dim); letter-spacing:3px; margin-bottom:8px; }
-.bar-wrap { height:4px; background:var(--dimmer); border-radius:2px; overflow:hidden; margin-bottom:4px; }
-.bar-fill {
-  height:100%; width:0%;
-  background:linear-gradient(90deg, var(--accent), var(--blue));
-  border-radius:2px; transition:width 1s ease;
-}
-.speed-ticks {
-  display:flex; justify-content:space-between;
-  font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--dim);
-}
+@media(min-height: 700px) { .map-wrap { height: 320px; } }
+#map { width:100%; height:100%; }
 
-/* Detail card */
-.detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
-.d-card {
-  background:var(--card); border:1px solid var(--border); padding:8px;
+.map-badge {
+  position:absolute; bottom:10px; left:10px; z-index:500;
+  background:rgba(7,9,13,0.88); border:1px solid var(--border);
+  padding:6px 10px; backdrop-filter:blur(4px);
+  font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--dim); line-height:1.6;
 }
-.d-lbl { font-size:8px; color:var(--dim); letter-spacing:2px; text-transform:uppercase; margin-bottom:3px; }
-.d-val { font-family:'Share Tech Mono',monospace; font-size:13px; color:var(--blue); }
+.map-badge span { color:var(--blue); }
 
-/* Tombol kontrol sesi */
-.btn-row { display:flex; gap:6px; }
-.btn {
-  flex:1; padding:7px; border:1px solid var(--dim); background:transparent;
-  color:var(--dim); font-family:'Share Tech Mono',monospace; font-size:9px;
-  letter-spacing:1px; cursor:pointer; text-transform:uppercase;
-  transition:all 0.2s;
+.waiting-overlay {
+  position:absolute; inset:0; z-index:400;
+  background:rgba(7,9,13,0.8); backdrop-filter:blur(3px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
 }
-.btn:hover { border-color:var(--accent); color:var(--accent); }
-.btn.danger:hover { border-color:var(--danger); color:var(--danger); }
-.btn.primary { border-color:var(--accent); color:var(--accent); }
+.waiting-overlay.hidden { display:none; }
+.waiting-text { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--dim); letter-spacing:3px; animation:shimmer 2s infinite; }
+.waiting-sub { font-size:9px; color:#1a2a1a; letter-spacing:1px; text-align:center; padding:0 20px; }
 
-/* Interval selector */
+/* ── TAB SECTION ── */
+.tab-bar {
+  display:flex; background:var(--panel);
+  border-bottom:1px solid var(--border);
+  position:sticky; top:49px; z-index:99;
+  overflow-x:auto; white-space:nowrap;
+}
+.tab-bar::-webkit-scrollbar { display:none; }
+.tab {
+  flex:none; padding:10px 16px; min-width:80px; text-align:center;
+  font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px;
+  color:var(--dim); text-transform:uppercase; cursor:pointer;
+  border-bottom:2px solid transparent; transition:all 0.2s;
+}
+.tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+.tab-content { display:none; padding:12px; }
+.tab-content.active { display:block; }
+
+/* ── DETAIL GRID ── */
+.detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.d-card { background:var(--card); border:1px solid var(--border); padding:10px; }
+.d-lbl { font-size:8px; color:var(--dim); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px; }
+.d-val { font-family:'Share Tech Mono',monospace; font-size:14px; color:var(--blue); }
+
+/* ── KONTROL ── */
+.section-head {
+  font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:3px;
+  color:var(--dim); text-transform:uppercase; display:flex; align-items:center; gap:8px;
+  margin-bottom:8px;
+}
+.section-head::after { content:''; flex:1; height:1px; background:var(--border); }
+
 .interval-row {
   display:flex; align-items:center; gap:8px;
-  background:var(--card); border:1px solid var(--border); padding:8px 12px;
+  background:var(--card); border:1px solid var(--border);
+  padding:10px 12px; margin-bottom:8px;
 }
-.interval-lbl { font-size:10px; color:var(--dim); flex:1; }
+.interval-lbl { font-size:11px; color:var(--dim); flex:1; }
 .interval-select {
   background:var(--dimmer); border:1px solid var(--dim);
   color:var(--accent); font-family:'Share Tech Mono',monospace;
-  font-size:11px; padding:4px 8px; cursor:pointer;
+  font-size:11px; padding:5px 8px; cursor:pointer;
 }
 .interval-select option { background:var(--panel); }
 
-/* ── PETA ── */
-.map-wrap { position:relative; }
-#map { width:100%; height:100%; }
-.map-badge {
-  position:absolute; top:12px; right:12px; z-index:500;
-  background:rgba(7,9,13,0.88); border:1px solid var(--border);
-  padding:8px 12px; backdrop-filter:blur(4px);
-  font-family:'Share Tech Mono',monospace; font-size:10px;
-  color:var(--dim); line-height:1.7;
+.btn-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:12px; }
+.btn {
+  padding:9px 6px; border:1px solid var(--dim); background:transparent;
+  color:var(--dim); font-family:'Share Tech Mono',monospace; font-size:9px;
+  letter-spacing:1px; cursor:pointer; text-transform:uppercase; transition:all 0.2s;
 }
-.map-badge span { color:var(--blue); }
-.waiting-overlay {
-  position:absolute; inset:0; z-index:400;
-  background:rgba(7,9,13,0.75); backdrop-filter:blur(3px);
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
-}
-.waiting-overlay.hidden { display:none; }
-.waiting-text { font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--dim); letter-spacing:4px; animation:shimmer 2s infinite; }
-.waiting-sub { font-size:10px; color:#1a2a1a; letter-spacing:2px; }
+.btn:active { transform:scale(0.97); }
+.btn.primary { border-color:var(--accent); color:var(--accent); }
+.btn.danger:active, .btn.danger:hover { border-color:var(--danger); color:var(--danger); }
 
-/* ── PANEL KANAN ── */
-.panel-right {
-  background:var(--panel);
-  border-left:1px solid var(--border);
-  display:flex; flex-direction:column;
-  overflow:hidden;
-}
-
-.tab-bar {
-  display:flex; border-bottom:1px solid var(--border); flex-shrink:0;
-}
-.tab {
-  flex:1; padding:10px 6px; text-align:center;
-  font-family:'Share Tech Mono',monospace; font-size:9px;
-  letter-spacing:1px; cursor:pointer; color:var(--dim);
-  text-transform:uppercase; border-bottom:2px solid transparent;
-  transition:all 0.2s;
-}
-.tab.active { color:var(--accent); border-bottom-color:var(--accent); }
-.tab-content { display:none; flex:1; overflow-y:auto; padding:12px; }
-.tab-content.active { display:flex; flex-direction:column; gap:8px; }
-
-/* Tabel umum */
-.tbl { width:100%; border-collapse:collapse; font-size:10px; }
-.tbl th {
-  font-family:'Share Tech Mono',monospace; font-size:8px;
-  letter-spacing:1px; color:var(--dim); text-transform:uppercase;
-  padding:6px 8px; border-bottom:1px solid var(--border); text-align:left;
-}
-.tbl td {
-  padding:6px 8px; border-bottom:1px solid var(--dimmer);
-  font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text);
-  white-space:nowrap;
-}
-.tbl tr:hover td { background:var(--dimmer); }
-.tbl td.green { color:var(--accent); }
-.tbl td.blue  { color:var(--blue); }
-.tbl td.warn  { color:var(--warn); }
-
-/* Voyage log card */
+/* ── VOYAGE CARDS ── */
 .voyage-card {
-  background:var(--card); border:1px solid var(--border); padding:10px;
-  margin-bottom:4px;
+  background:var(--card); border:1px solid var(--border);
+  border-left:3px solid var(--accent); padding:12px; margin-bottom:8px;
 }
-.voyage-card-head {
-  display:flex; justify-content:space-between; align-items:center;
-  margin-bottom:6px;
-}
-.voyage-name { font-size:11px; font-weight:600; color:var(--accent); }
+.voyage-card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.voyage-name { font-size:12px; font-weight:600; color:var(--accent); }
 .voyage-badge {
-  font-family:'Share Tech Mono',monospace; font-size:8px;
-  padding:2px 6px; border:1px solid;
+  font-family:'Share Tech Mono',monospace; font-size:8px; padding:2px 6px; border:1px solid;
 }
 .voyage-badge.aktif { border-color:var(--accent); color:var(--accent); }
 .voyage-badge.selesai { border-color:var(--dim); color:var(--dim); }
-.voyage-stats {
-  display:grid; grid-template-columns:1fr 1fr 1fr;
-  gap:6px; margin-top:6px;
+.voyage-meta { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--dim); line-height:1.8; margin-bottom:8px; }
+.voyage-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+.vs-item { text-align:center; background:var(--dimmer); padding:6px 4px; }
+.vs-val { font-family:'Share Tech Mono',monospace; font-size:13px; color:var(--blue); }
+.vs-lbl { font-size:7px; color:var(--dim); text-transform:uppercase; letter-spacing:1px; }
+
+/* ── JADWAL TABLE ── */
+.jadwal-table { width:100%; border-collapse:collapse; font-size:10px; }
+.jadwal-table th {
+  font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:1px;
+  color:var(--dim); padding:6px 8px; border-bottom:1px solid var(--border); text-align:left;
 }
-.vs-item { text-align:center; }
-.vs-val { font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--blue); }
-.vs-lbl { font-size:8px; color:var(--dim); }
+.jadwal-table td {
+  padding:7px 8px; border-bottom:1px solid var(--dimmer);
+  font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text);
+}
+.jadwal-table tr:active td { background:var(--dimmer); }
+.green { color:var(--accent); }
+.blue  { color:var(--blue); }
+.warn  { color:var(--warn); }
 
 /* Scrollbar */
-::-webkit-scrollbar { width:3px; }
-::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:var(--dim); border-radius:2px; }
+::-webkit-scrollbar { width:2px; height:2px; }
+::-webkit-scrollbar-thumb { background:var(--dim); }
 
-@media(max-width:900px) {
-  .main { grid-template-columns:1fr; grid-template-rows:auto 300px auto; }
-  .panel-left { max-height:none; }
+/* ── DESKTOP override ── */
+@media(min-width: 768px) {
+  .brand-sub { display:block; }
+  .brand-name { font-size:22px; }
+  .speed-big { font-size:56px; }
+  .map-wrap { height: 400px; }
+
+  .desktop-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    min-height: calc(100vh - 49px);
+  }
+  .desktop-left {
+    background:var(--panel); border-right:1px solid var(--border);
+    overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px;
+  }
+  .desktop-right { overflow-y:auto; }
+  .speed-hero { border-bottom:none; border-right:1px solid var(--border); flex-direction:column; padding:20px; }
+  .speed-right { margin-left:0; margin-top:12px; width:100%; }
+  .speed-big { font-size:72px; }
+  .map-wrap { height:100%; min-height:350px; }
+  .tab-bar { top:0; }
 }
 </style>
 </head>
@@ -274,216 +268,207 @@ body::after {
     <div class="brand-icon">VT</div>
     <div>
       <div class="brand-name">Voyage Tracker</div>
-      <div class="brand-sub">PKL Indocement · GPS Monitor System</div>
+      <div class="brand-sub">PKL Indocement · GPS Monitor</div>
     </div>
   </div>
-
-  <div class="topbar-center">
-    <div class="stat-top">
-      <div class="stat-top-val" id="top-kec">0.0 km/h</div>
-      <div class="stat-top-lbl">Kecepatan</div>
-    </div>
-    <div class="stat-top">
-      <div class="stat-top-val" id="top-jarak">0.000 km</div>
-      <div class="stat-top-lbl">Jarak Sesi</div>
-    </div>
-    <div class="stat-top">
-      <div class="stat-top-val" id="top-avg">0.0 km/h</div>
-      <div class="stat-top-lbl">Rata-rata</div>
-    </div>
-    <div class="stat-top">
-      <div class="stat-top-val" id="top-titik">0</div>
-      <div class="stat-top-lbl">Titik GPS</div>
-    </div>
-  </div>
-
   <div class="topbar-right">
     <div class="badge">
       <div class="dot" id="dot-live"></div>
       <span id="txt-live">OFFLINE</span>
     </div>
-    <div class="jam" id="jam-now">--:--:--</div>
+    <div class="jam" id="jam-now">--:--</div>
   </div>
 </div>
 
-<!-- MAIN -->
-<div class="main">
+<!-- MOBILE LAYOUT -->
+<div id="mobile-view">
 
-  <!-- PANEL KIRI -->
-  <div class="panel-left">
-
+  <!-- Speed Hero -->
+  <div class="speed-hero">
     <div>
-      <div class="section-head">Koordinat</div>
-      <div class="coord-card">
-        <div class="coord-row">
-          <span class="coord-key">LATITUDE</span>
-          <span class="coord-val empty" id="v-lat">---.------</span>
+      <div class="speed-big" id="v-speed">0</div>
+      <div class="speed-unit">KM / JAM</div>
+    </div>
+    <div class="speed-right">
+      <div class="bar-wrap"><div class="bar-fill" id="bar-speed"></div></div>
+      <div class="speed-ticks"><span>0</span><span>30</span><span>60</span><span>90</span><span>120</span></div>
+      <div class="mini-stats">
+        <div class="mini-stat">
+          <div class="mini-val" id="top-jarak">0.00</div>
+          <div class="mini-lbl">km</div>
         </div>
-        <div class="coord-row">
-          <span class="coord-key">LONGITUDE</span>
-          <span class="coord-val empty" id="v-lon">---.------</span>
+        <div class="mini-stat">
+          <div class="mini-val" id="top-avg">0.0</div>
+          <div class="mini-lbl">avg</div>
         </div>
-        <div class="coord-row" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--dimmer)">
-          <span class="coord-key">AKURASI</span>
-          <span class="coord-val" id="v-akurasi" style="color:var(--blue);font-size:11px">-- m</span>
+        <div class="mini-stat">
+          <div class="mini-val" id="top-titik">0</div>
+          <div class="mini-lbl">titik</div>
         </div>
       </div>
     </div>
-
-    <div>
-      <div class="section-head">Kecepatan</div>
-      <div class="speed-card">
-        <div class="speed-big" id="v-speed">0</div>
-        <div class="speed-unit">KM / JAM</div>
-        <div class="bar-wrap"><div class="bar-fill" id="bar-speed"></div></div>
-        <div class="speed-ticks"><span>0</span><span>30</span><span>60</span><span>90</span><span>120</span></div>
-      </div>
-    </div>
-
-    <div>
-      <div class="section-head">Detail</div>
-      <div class="detail-grid">
-        <div class="d-card">
-          <div class="d-lbl">Altitude</div>
-          <div class="d-val" id="v-alt">-- m</div>
-        </div>
-        <div class="d-card">
-          <div class="d-lbl">Provider</div>
-          <div class="d-val" id="v-prov">--</div>
-        </div>
-        <div class="d-card">
-          <div class="d-lbl">Update</div>
-          <div class="d-val" id="v-waktu" style="font-size:10px">--:--:--</div>
-        </div>
-        <div class="d-card">
-          <div class="d-lbl">Sumber</div>
-          <div class="d-val" id="v-sumber" style="font-size:10px">--</div>
-        </div>
-      </div>
-    </div>
-
-    <div>
-      <div class="section-head">Interval Update</div>
-      <div class="interval-row">
-        <span class="interval-lbl">Kirim GPS tiap</span>
-        <select class="interval-select" id="sel-interval" onchange="setInterval_()">
-          <option value="30">30 detik</option>
-          <option value="60" selected>1 menit</option>
-          <option value="120">2 menit</option>
-          <option value="300">5 menit</option>
-          <option value="600">10 menit</option>
-        </select>
-      </div>
-    </div>
-
-    <div>
-      <div class="section-head">Sesi Voyage</div>
-      <div class="btn-row">
-        <button class="btn primary" onclick="sesiBaruPrompt()">▶ Sesi Baru</button>
-        <button class="btn" onclick="tutupSesi()">◼ Tutup</button>
-        <button class="btn danger" onclick="resetSemua()">⬛ Reset</button>
-      </div>
-    </div>
-
   </div>
 
-  <!-- PETA -->
+  <!-- Koordinat -->
+  <div class="coord-bar">
+    <div class="coord-item">
+      <div class="coord-key">LATITUDE</div>
+      <div class="coord-val empty" id="v-lat">---.------</div>
+    </div>
+    <div class="coord-item">
+      <div class="coord-key">LONGITUDE</div>
+      <div class="coord-val empty" id="v-lon">---.------</div>
+    </div>
+  </div>
+
+  <!-- Peta -->
   <div class="map-wrap">
     <div id="map"></div>
     <div class="map-badge">
-      POSISI: <span id="mb-pos">-- , --</span><br>
-      TITIK: <span id="mb-titik">0</span><br>
-      SESI: <span id="mb-sesi">--</span>
+      <span id="mb-pos">-- , --</span><br>
+      Titik: <span id="mb-titik">0</span> · Sesi: <span id="mb-sesi">--</span>
     </div>
     <div class="waiting-overlay" id="waiting-overlay">
-      <div class="waiting-text">◉ MENUNGGU DATA GPS</div>
-      <div class="waiting-sub">Aktifkan GPSLogger di HP → atur URL server</div>
+      <div class="waiting-text">◉ MENUNGGU GPS</div>
+      <div class="waiting-sub">Aktifkan GPSLogger → pastikan "Log to custom URL" ON</div>
     </div>
   </div>
 
-  <!-- PANEL KANAN -->
-  <div class="panel-right">
-    <div class="tab-bar">
-      <div class="tab active" onclick="switchTab('voyage')">Voyage Log</div>
-      <div class="tab" onclick="switchTab('jadwal')">Jadwal Update</div>
-    </div>
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('detail')">Detail</div>
+    <div class="tab" onclick="switchTab('voyage')">Voyage Log</div>
+    <div class="tab" onclick="switchTab('jadwal')">Jadwal</div>
+    <div class="tab" onclick="switchTab('kontrol')">Kontrol</div>
+  </div>
 
-    <!-- Tab Voyage Log -->
-    <div class="tab-content active" id="tab-voyage">
-      <div id="voyage-list">
-        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);text-align:center;padding:20px">
-          Belum ada sesi voyage.
-        </div>
+  <!-- Tab: Detail -->
+  <div class="tab-content active" id="tab-detail">
+    <div class="detail-grid">
+      <div class="d-card">
+        <div class="d-lbl">Altitude</div>
+        <div class="d-val" id="v-alt">-- m</div>
       </div>
-    </div>
-
-    <!-- Tab Jadwal Update -->
-    <div class="tab-content" id="tab-jadwal">
-      <div style="overflow-x:auto">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th>Waktu</th>
-              <th>Lat</th>
-              <th>Lon</th>
-              <th>Kec.</th>
-              <th>Interval</th>
-            </tr>
-          </thead>
-          <tbody id="jadwal-body">
-            <tr><td colspan="5" style="color:var(--dim);text-align:center">Menunggu data...</td></tr>
-          </tbody>
-        </table>
+      <div class="d-card">
+        <div class="d-lbl">Akurasi</div>
+        <div class="d-val" id="v-akurasi">-- m</div>
+      </div>
+      <div class="d-card">
+        <div class="d-lbl">Provider</div>
+        <div class="d-val" id="v-prov">--</div>
+      </div>
+      <div class="d-card">
+        <div class="d-lbl">Update</div>
+        <div class="d-val" id="v-waktu" style="font-size:11px">--:--:--</div>
+      </div>
+      <div class="d-card">
+        <div class="d-lbl">Sumber</div>
+        <div class="d-val" id="v-sumber" style="font-size:11px">--</div>
+      </div>
+      <div class="d-card">
+        <div class="d-lbl">Max Speed</div>
+        <div class="d-val" id="v-maxspd">-- km/h</div>
       </div>
     </div>
   </div>
 
-</div>
+  <!-- Tab: Voyage Log -->
+  <div class="tab-content" id="tab-voyage">
+    <div id="voyage-list">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);text-align:center;padding:24px">
+        Belum ada sesi voyage.
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Jadwal -->
+  <div class="tab-content" id="tab-jadwal">
+    <div style="overflow-x:auto">
+      <table class="jadwal-table">
+        <thead>
+          <tr>
+            <th>Waktu</th>
+            <th>Lat</th>
+            <th>Lon</th>
+            <th>Kec.</th>
+            <th>Int.</th>
+          </tr>
+        </thead>
+        <tbody id="jadwal-body">
+          <tr><td colspan="5" style="color:var(--dim);text-align:center;padding:16px">Menunggu data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab: Kontrol -->
+  <div class="tab-content" id="tab-kontrol">
+    <div class="section-head">Interval Update</div>
+    <div class="interval-row">
+      <span class="interval-lbl">Kirim GPS tiap</span>
+      <select class="interval-select" id="sel-interval" onchange="setIntervalGPS()">
+        <option value="30">30 detik</option>
+        <option value="60" selected>1 menit</option>
+        <option value="120">2 menit</option>
+        <option value="300">5 menit</option>
+        <option value="600">10 menit</option>
+      </select>
+    </div>
+
+    <div class="section-head">Sesi Voyage</div>
+    <div class="btn-row">
+      <button class="btn primary" onclick="sesiBaruPrompt()">▶ Baru</button>
+      <button class="btn" onclick="tutupSesi()">◼ Tutup</button>
+      <button class="btn danger" onclick="resetSemua()">⬛ Reset</button>
+    </div>
+  </div>
+
+</div><!-- end mobile-view -->
 
 <script>
-// ── PETA ──────────────────────────────────────────────────────
-const map = L.map('map', { center:[-6.2, 106.8], zoom:14 });
+// ── PETA ─────────────────────────────────────────────────────
+const map = L.map('map', { center:[-6.2, 106.8], zoom:14, zoomControl:false });
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   attribution:'© OpenStreetMap © CARTO', maxZoom:19
 }).addTo(map);
+L.control.zoom({ position:'bottomright' }).addTo(map);
 
 const markerIcon = L.divIcon({
   className:'',
-  html:`<div style="width:12px;height:12px;background:#00e87a;border:2px solid #fff;border-radius:50%;
-        box-shadow:0 0 16px #00e87a,0 0 4px #fff;"></div>`,
+  html:`<div style="width:12px;height:12px;background:#00e87a;border:2px solid #fff;border-radius:50%;box-shadow:0 0 14px #00e87a,0 0 4px #fff;"></div>`,
   iconSize:[12,12], iconAnchor:[6,6]
 });
 
-let marker   = null;
-let polyline = null;
-let adaData  = false;
+let marker=null, polyline=null, adaData=false;
 
 // ── JAM ──────────────────────────────────────────────────────
 setInterval(() => {
+  const t = new Date();
   document.getElementById('jam-now').textContent =
-    new Date().toLocaleTimeString('id-ID');
+    t.getHours().toString().padStart(2,'0') + ':' +
+    t.getMinutes().toString().padStart(2,'0');
 }, 1000);
 
 // ── TAB ──────────────────────────────────────────────────────
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((t,i) => {
-    t.classList.toggle('active', ['voyage','jadwal'][i] === tab);
-  });
-  document.getElementById('tab-voyage').classList.toggle('active', tab==='voyage');
-  document.getElementById('tab-jadwal').classList.toggle('active', tab==='jadwal');
+const tabs = ['detail','voyage','jadwal','kontrol'];
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', tabs[i]===name));
+  tabs.forEach(t => document.getElementById('tab-'+t).classList.toggle('active', t===name));
+  if (name==='voyage') fetchVoyageLog();
+  if (name==='jadwal') fetchJadwal();
 }
 
-// ── FETCH LIVE ────────────────────────────────────────────────
+// ── FETCH LIVE ───────────────────────────────────────────────
 async function fetchLive() {
   try {
     const r = await fetch('/api/live');
     if (!r.ok) return;
     const d = await r.json();
-    updateLive(d);
+    updateUI(d);
   } catch(e) {}
 }
 
-function updateLive(d) {
+function updateUI(d) {
   const t = d.terakhir;
   if (!t || t.lat == null) return;
 
@@ -497,38 +482,38 @@ function updateLive(d) {
   const spd = t.kecepatan || 0;
 
   // Koordinat
-  setEl('v-lat',  t.lat.toFixed(6));
-  setEl('v-lon',  t.lon.toFixed(6));
-  setEl('v-akurasi', (t.akurasi||0) + ' m');
-  document.getElementById('v-lat').classList.remove('empty');
-  document.getElementById('v-lon').classList.remove('empty');
+  const latEl = document.getElementById('v-lat');
+  const lonEl = document.getElementById('v-lon');
+  latEl.textContent = t.lat.toFixed(6);
+  lonEl.textContent = t.lon.toFixed(6);
+  latEl.classList.remove('empty');
+  lonEl.classList.remove('empty');
 
   // Kecepatan
   setEl('v-speed', spd.toFixed(1));
-  document.getElementById('bar-speed').style.width = Math.min((spd/120)*100, 100) + '%';
-  setEl('top-kec', spd.toFixed(1) + ' km/h');
+  document.getElementById('bar-speed').style.width = Math.min((spd/120)*100,100)+'%';
 
   // Detail
-  setEl('v-alt',   (t.altitude||0) + ' m');
-  setEl('v-prov',  (t.provider||'gps').toUpperCase());
-  setEl('v-waktu', t.timestamp ? t.timestamp.split(' ')[1] : '--');
-  setEl('v-sumber',(t.sumber||'--').toUpperCase());
-
-  // Map overlay
-  setEl('mb-pos', t.lat.toFixed(4) + ', ' + t.lon.toFixed(4));
-  setEl('mb-titik', d.rute ? d.rute.length : 0);
+  setEl('v-alt',     (t.altitude||0).toFixed(1)+' m');
+  setEl('v-akurasi', (t.akurasi||0).toFixed(1)+' m');
+  setEl('v-prov',    (t.provider||'gps').toUpperCase());
+  setEl('v-waktu',   t.timestamp ? t.timestamp.split(' ')[1] : '--');
+  setEl('v-sumber',  (t.sumber||'--').toUpperCase());
 
   // Sesi
   const sesi = d.sesi || {};
-  setEl('top-jarak', (sesi.jarak_km||0).toFixed(3) + ' km');
-  setEl('top-avg',   (sesi.kecepatan_avg||0).toFixed(1) + ' km/h');
+  setEl('top-jarak', (sesi.jarak_km||0).toFixed(2));
+  setEl('top-avg',   (sesi.kecepatan_avg||0).toFixed(1));
   setEl('top-titik', sesi.jumlah_titik||0);
-  setEl('mb-sesi', sesi.nama||'--');
+  setEl('v-maxspd',  (sesi.kecepatan_max||0).toFixed(1)+' km/h');
+  setEl('mb-pos',    t.lat.toFixed(4)+', '+t.lon.toFixed(4));
+  setEl('mb-titik',  d.rute ? d.rute.length : 0);
+  setEl('mb-sesi',   sesi.nama||'--');
 
   // Peta
   const ll = [t.lat, t.lon];
   if (!marker) {
-    marker = L.marker(ll, {icon: markerIcon}).addTo(map);
+    marker = L.marker(ll, {icon:markerIcon}).addTo(map);
     map.setView(ll, 16);
   } else {
     marker.setLatLng(ll);
@@ -538,16 +523,14 @@ function updateLive(d) {
   if (d.rute && d.rute.length > 1) {
     const coords = d.rute.map(r => [r.lat, r.lon]);
     if (!polyline) {
-      polyline = L.polyline(coords, {
-        color:'#00b4ff', weight:2, opacity:0.75, dashArray:'5,4'
-      }).addTo(map);
+      polyline = L.polyline(coords, {color:'#00b4ff', weight:2, opacity:0.7, dashArray:'5,4'}).addTo(map);
     } else {
       polyline.setLatLngs(coords);
     }
   }
 }
 
-// ── FETCH VOYAGE LOG ──────────────────────────────────────────
+// ── FETCH VOYAGE ─────────────────────────────────────────────
 async function fetchVoyageLog() {
   try {
     const r = await fetch('/api/voyage_log');
@@ -560,30 +543,21 @@ async function fetchVoyageLog() {
           <span class="voyage-name">${s.nama||'Voyage'}</span>
           <span class="voyage-badge ${s.aktif?'aktif':'selesai'}">${s.aktif?'AKTIF':'SELESAI'}</span>
         </div>
-        <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim)">
+        <div class="voyage-meta">
           Mulai: ${s.mulai||'--'}<br>
-          ${s.selesai ? 'Selesai: '+s.selesai : ''}
+          ${s.selesai?'Selesai: '+s.selesai:''}
         </div>
         <div class="voyage-stats">
-          <div class="vs-item">
-            <div class="vs-val">${(s.jarak_km||0).toFixed(2)}</div>
-            <div class="vs-lbl">km</div>
-          </div>
-          <div class="vs-item">
-            <div class="vs-val">${(s.kecepatan_avg||0).toFixed(1)}</div>
-            <div class="vs-lbl">avg km/h</div>
-          </div>
-          <div class="vs-item">
-            <div class="vs-val">${(s.kecepatan_max||0).toFixed(1)}</div>
-            <div class="vs-lbl">max km/h</div>
-          </div>
+          <div class="vs-item"><div class="vs-val">${(s.jarak_km||0).toFixed(2)}</div><div class="vs-lbl">km</div></div>
+          <div class="vs-item"><div class="vs-val">${(s.kecepatan_avg||0).toFixed(1)}</div><div class="vs-lbl">avg</div></div>
+          <div class="vs-item"><div class="vs-val">${(s.kecepatan_max||0).toFixed(1)}</div><div class="vs-lbl">max</div></div>
         </div>
       </div>
     `).join('');
   } catch(e) {}
 }
 
-// ── FETCH JADWAL LOG ──────────────────────────────────────────
+// ── FETCH JADWAL ─────────────────────────────────────────────
 async function fetchJadwal() {
   try {
     const r = await fetch('/api/jadwal_log');
@@ -592,10 +566,10 @@ async function fetchJadwal() {
     if (!data.length) return;
     tbody.innerHTML = data.map(j => `
       <tr>
-        <td class="blue">${j.timestamp ? j.timestamp.split(' ')[1] : '--'}</td>
-        <td>${j.lat ? j.lat.toFixed(4) : '--'}</td>
-        <td>${j.lon ? j.lon.toFixed(4) : '--'}</td>
-        <td class="green">${j.kecepatan||0} km/h</td>
+        <td class="blue">${j.timestamp?j.timestamp.split(' ')[1]:'--'}</td>
+        <td>${j.lat?j.lat.toFixed(4):'--'}</td>
+        <td>${j.lon?j.lon.toFixed(4):'--'}</td>
+        <td class="green">${j.kecepatan||0}</td>
         <td class="warn">${j.interval_s||60}s</td>
       </tr>
     `).join('');
@@ -603,24 +577,22 @@ async function fetchJadwal() {
 }
 
 // ── KONTROL ──────────────────────────────────────────────────
-async function setInterval_() {
+async function setIntervalGPS() {
   const val = parseInt(document.getElementById('sel-interval').value);
   await fetch('/api/set_interval', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({interval: val})
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({interval:val})
   });
 }
 
 async function sesiBaruPrompt() {
-  const nama = prompt('Nama sesi voyage:', 'Voyage ' + new Date().toLocaleDateString('id-ID'));
+  const nama = prompt('Nama sesi:', 'Voyage '+new Date().toLocaleDateString('id-ID'));
   if (!nama) return;
   await fetch('/api/sesi_baru', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
+    method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({nama})
   });
-  if (polyline) { map.removeLayer(polyline); polyline = null; }
+  if (polyline) { map.removeLayer(polyline); polyline=null; }
   fetchVoyageLog();
 }
 
@@ -631,29 +603,23 @@ async function tutupSesi() {
 }
 
 async function resetSemua() {
-  if (!confirm('Reset SEMUA data? Data tidak bisa dikembalikan.')) return;
+  if (!confirm('Reset SEMUA data?')) return;
   await fetch('/api/reset', {method:'POST'});
-  if (polyline) { map.removeLayer(polyline); polyline = null; }
-  if (marker)   { map.removeLayer(marker);   marker   = null; }
-  adaData = false;
+  if (polyline) { map.removeLayer(polyline); polyline=null; }
+  if (marker)   { map.removeLayer(marker);   marker=null; }
+  adaData=false;
   document.getElementById('waiting-overlay').classList.remove('hidden');
   document.getElementById('dot-live').classList.remove('on');
-  document.getElementById('txt-live').textContent = 'OFFLINE';
+  document.getElementById('txt-live').textContent='OFFLINE';
 }
 
-// ── HELPER ──────────────────────────────────────────────────
-function setEl(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = val;
-}
+function setEl(id,val) { const e=document.getElementById(id); if(e) e.textContent=val; }
 
 // ── POLLING ──────────────────────────────────────────────────
 setInterval(fetchLive, 3000);
-setInterval(fetchVoyageLog, 10000);
-setInterval(fetchJadwal, 5000);
+setInterval(fetchVoyageLog, 15000);
+setInterval(fetchJadwal, 8000);
 fetchLive();
-fetchVoyageLog();
-fetchJadwal();
 </script>
 </body>
 </html>
