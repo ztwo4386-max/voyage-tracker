@@ -285,9 +285,8 @@ def reset_semua():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
+init_db()
 if __name__ == "__main__":
-    init_db()
     print("Database siap")
     print("Server jalan di http://localhost:5000")
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
