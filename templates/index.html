@@ -287,6 +287,15 @@ body::after {
 }
 .sesi-status.active { color:var(--accent); }
 
+/* Konektivitas grid */
+.koneksi-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; }
+.koneksi-item { background:var(--card); border:1px solid var(--border); padding:8px 10px; }
+.koneksi-lbl { font-size:8px; color:var(--dim); letter-spacing:2px; text-transform:uppercase; margin-bottom:3px; }
+.koneksi-val { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text); }
+.koneksi-val.ok    { color:var(--accent); }
+.koneksi-val.warn  { color:var(--warn); }
+.koneksi-val.error { color:var(--danger); }
+
 /* Trip status card */
 .trip-status-card {
   background:var(--card); border:1px solid var(--border);
@@ -551,6 +560,27 @@ body::after {
         <div class="d-val" id="v-maxspd">-- km/h</div>
       </div>
     </div>
+
+    <!-- Konektivitas -->
+    <div class="section-head" style="margin-top:4px">Konektivitas</div>
+    <div class="koneksi-grid">
+      <div class="koneksi-item">
+        <div class="koneksi-lbl">Sumber GPS</div>
+        <div class="koneksi-val" id="k-sumber">--</div>
+      </div>
+      <div class="koneksi-item">
+        <div class="koneksi-lbl">Data diterima</div>
+        <div class="koneksi-val" id="k-waktu">--</div>
+      </div>
+      <div class="koneksi-item">
+        <div class="koneksi-lbl">Titik GPS</div>
+        <div class="koneksi-val" id="k-titik">0</div>
+      </div>
+      <div class="koneksi-item">
+        <div class="koneksi-lbl">Status sesi</div>
+        <div class="koneksi-val" id="k-sesi">--</div>
+      </div>
+    </div>
   </div>
 
   <!-- Tab: Voyage Log -->
@@ -690,6 +720,45 @@ function updateUI(d) {
   setEl('v-prov',    (t.provider||'gps').toUpperCase());
   setEl('v-waktu',   t.timestamp ? t.timestamp.split(' ')[1] : '--');
   setEl('v-sumber',  (t.sumber||'--').toUpperCase());
+
+  // ── Indikator Konektivitas ──
+  const kSumber = document.getElementById('k-sumber');
+  if (kSumber) {
+    const dariGPS = t.sumber === 'gpslogger';
+    kSumber.textContent = dariGPS ? 'GPSLogger ✓' : (t.sumber === 'esp32' ? 'ESP32 (lama)' : '--');
+    kSumber.className = 'koneksi-val ' + (dariGPS ? 'ok' : 'warn');
+  }
+
+  // Berapa menit lalu
+  const kWaktu = document.getElementById('k-waktu');
+  if (kWaktu && t.timestamp) {
+    const tsServer = new Date(t.timestamp.replace(' ', 'T') + '+07:00');
+    const selisihS = Math.floor((Date.now() - tsServer.getTime()) / 1000);
+    if (selisihS < 60) {
+      kWaktu.textContent = selisihS + ' detik lalu';
+      kWaktu.className = 'koneksi-val ok';
+    } else if (selisihS < 300) {
+      kWaktu.textContent = Math.floor(selisihS/60) + ' menit lalu';
+      kWaktu.className = 'koneksi-val warn';
+    } else {
+      kWaktu.textContent = Math.floor(selisihS/60) + ' mnt (lama!)';
+      kWaktu.className = 'koneksi-val error';
+    }
+  }
+
+  // Jumlah titik
+  const kTitik = document.getElementById('k-titik');
+  if (kTitik) {
+    kTitik.textContent = (sesi.jumlah_titik||0) + ' titik';
+    kTitik.className = 'koneksi-val ' + ((sesi.jumlah_titik||0) > 0 ? 'ok' : 'warn');
+  }
+
+  // Status sesi
+  const kSesi = document.getElementById('k-sesi');
+  if (kSesi) {
+    kSesi.textContent = sesi.aktif ? '● AKTIF' : '○ Tidak aktif';
+    kSesi.className = 'koneksi-val ' + (sesi.aktif ? 'ok' : 'warn');
+  }
 
   // Cek apakah data GPS masih fresh (max 3 menit)
   const STALE_MS = 3 * 60 * 1000;
