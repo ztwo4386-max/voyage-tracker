@@ -53,7 +53,7 @@ def init_db():
             altitude    REAL DEFAULT 0,
             akurasi     REAL DEFAULT 0,
             provider    TEXT DEFAULT 'gps',
-            sumber      TEXT DEFAULT 'gpslogger',  -- 'gpslogger' atau 'esp32'
+            sumber      TEXT DEFAULT 'gpslogger',
             timestamp   TEXT NOT NULL
         )
     """)
@@ -268,61 +268,73 @@ def api_live():
 # ── API: Log voyage semua sesi ──
 @app.route("/api/voyage_log")
 def api_voyage_log():
-    conn, c = get_db()
-    c.execute("SELECT * FROM sesi_voyage ORDER BY id DESC LIMIT 50")
-    sesi_list = [dict(r) for r in c.fetchall()]
-    conn.close()
-    return jsonify(sesi_list)
+    try:
+        conn, c = get_db()
+        c.execute("SELECT * FROM sesi_voyage ORDER BY id DESC LIMIT 50")
+        sesi_list = [dict(r) for r in c.fetchall()]
+        conn.close()
+        return jsonify(sesi_list)
+    except Exception as e:
+        return jsonify([])
 
 
 # ── API: Log jadwal update ──
 @app.route("/api/jadwal_log")
 def api_jadwal_log():
-    conn, c = get_db()
-    c.execute("""
-        SELECT timestamp, lat, lon, kecepatan, interval_s, status
-        FROM log_jadwal ORDER BY id DESC LIMIT 100
-    """)
-    logs = [dict(r) for r in c.fetchall()]
-    conn.close()
-    return jsonify(logs)
+    try:
+        conn, c = get_db()
+        c.execute("""
+            SELECT timestamp, lat, lon, kecepatan, interval_s, status
+            FROM log_jadwal ORDER BY id DESC LIMIT 100
+        """)
+        logs = [dict(r) for r in c.fetchall()]
+        conn.close()
+        return jsonify(logs)
+    except Exception as e:
+        return jsonify([])
 
 
 # ── API: Set interval update ──
 @app.route("/api/set_interval", methods=["POST"])
 def set_interval():
     global INTERVAL_UPDATE
-    data = request.get_json()
-    INTERVAL_UPDATE = int(data.get("interval", 60))
-    return jsonify({"status": "ok", "interval": INTERVAL_UPDATE})
+    try:
+        data = request.get_json()
+        INTERVAL_UPDATE = int(data.get("interval", 60))
+        return jsonify({"status": "ok", "interval": INTERVAL_UPDATE})
+    except Exception as e:
+        return jsonify({"status": "error", "pesan": str(e)}), 400
 
 
 # ── API: Mulai sesi voyage baru ──
 @app.route("/api/sesi_baru", methods=["POST"])
 def sesi_baru():
-    data = request.get_json()
-    nama = data.get("nama", f"Voyage {datetime.now().strftime('%d/%m %H:%M')}")
-    waktu_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    conn, c = get_db()
-    # Tutup sesi aktif dulu
-    c.execute("UPDATE sesi_voyage SET aktif=0, selesai=? WHERE aktif=1", (waktu_now,))
-    # Buat sesi baru
-    c.execute("INSERT INTO sesi_voyage (nama, mulai, aktif) VALUES (?, ?, 1)", (nama, waktu_now))
-    conn.commit()
-    conn.close()
-    return jsonify({"status": "ok", "nama": nama})
+    try:
+        data = request.get_json()
+        nama = data.get("nama", f"Voyage {datetime.now().strftime('%d/%m %H:%M')}")
+        waktu_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        conn, c = get_db()
+        c.execute("UPDATE sesi_voyage SET aktif=0, selesai=? WHERE aktif=1", (waktu_now,))
+        c.execute("INSERT INTO sesi_voyage (nama, mulai, aktif) VALUES (?, ?, 1)", (nama, waktu_now))
+        conn.commit()
+        conn.close()
+        return jsonify({"status": "ok", "nama": nama})
+    except Exception as e:
+        return jsonify({"status": "error", "pesan": str(e)}), 400
 
 
 # ── API: Tutup sesi aktif ──
 @app.route("/api/tutup_sesi", methods=["POST"])
 def tutup_sesi():
-    waktu_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    conn, c = get_db()
-    c.execute("UPDATE sesi_voyage SET aktif=0, selesai=? WHERE aktif=1", (waktu_now,))
-    conn.commit()
-    conn.close()
-    return jsonify({"status": "ok"})
+    try:
+        waktu_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        conn, c = get_db()
+        c.execute("UPDATE sesi_voyage SET aktif=0, selesai=? WHERE aktif=1", (waktu_now,))
+        conn.commit()
+        conn.close()
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        return jsonify({"status": "error", "pesan": str(e)}), 400
 
 
 # ── API: Reset semua data ──
