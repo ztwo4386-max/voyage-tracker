@@ -652,13 +652,15 @@ async function fetchLive() {
     const r = await fetch('/api/live');
     if (!r.ok) return;
     const d = await r.json();
+    if (d.error) return; // server error, skip update
     updateUI(d);
   } catch(e) {}
 }
 
 function updateUI(d) {
   const t = d.terakhir;
-  if (!t || t.lat == null) return;
+  // Handle kosong {} dari server
+  if (!t || Object.keys(t).length === 0 || t.lat == null) return;
 
   if (!adaData) {
     adaData = true;
@@ -688,6 +690,21 @@ function updateUI(d) {
   setEl('v-prov',    (t.provider||'gps').toUpperCase());
   setEl('v-waktu',   t.timestamp ? t.timestamp.split(' ')[1] : '--');
   setEl('v-sumber',  (t.sumber||'--').toUpperCase());
+
+  // Cek apakah data GPS masih fresh (max 3 menit)
+  const STALE_MS = 3 * 60 * 1000;
+  if (t.timestamp) {
+    const tsServer = new Date(t.timestamp.replace(' ', 'T') + '+07:00');
+    const selisihMs = Date.now() - tsServer.getTime();
+    const badge = document.getElementById('dot-live');
+    if (selisihMs > STALE_MS) {
+      badge.classList.remove('on');
+      document.getElementById('txt-live').textContent = 'STALE';
+    } else {
+      badge.classList.add('on');
+      document.getElementById('txt-live').textContent = 'LIVE';
+    }
+  }
 
   // Sesi
   const sesi = d.sesi || {};
@@ -720,12 +737,10 @@ function updateUI(d) {
   if (sesi.aktif && d.rute && d.rute.length > 1) {
     const coords = d.rute.map(r => [r.lat, r.lon]);
     if (!polyline) {
-      polyline = L.polyline(coords, {color:'#00b4ff', weight:2, opacity:0.7, dashArray:'5,4'}).addTo(map);
+      polyline = L.polyline(coords, {color:'#00b4ff', weight:2.5, opacity:0.85, dashArray:'6,4'}).addTo(map);
     } else {
       polyline.setLatLngs(coords);
     }
-  } else if (!sesi.aktif && polyline) {
-    // Sesi selesai — freeze rute, tidak hapus tapi tidak update lagi
   }
 }
 
@@ -845,11 +860,15 @@ async function resetSemua() {
   await fetch('/api/reset', {method:'POST'});
   if (polyline) { map.removeLayer(polyline); polyline=null; }
   if (marker)   { map.removeLayer(marker);   marker=null; }
-  adaData=false;
+  adaData = false;
+  sesiAktif = false;
+  namaPerjalananAktif = '';
+  updateTombolSesi(false);
   document.getElementById('waiting-overlay').classList.remove('hidden');
   document.getElementById('dot-live').classList.remove('on');
-  document.getElementById('txt-live').textContent='OFFLINE';
-  startSonar();
+  document.getElementById('txt-live').textContent = 'OFFLINE';
+  document.getElementById('voyage-list').innerHTML =
+    '<div style="font-family:\'Share Tech Mono\',monospace;font-size:10px;color:var(--dim);text-align:center;padding:24px">Belum ada sesi voyage.</div>';
 }
 
 function setEl(id,val) { const e=document.getElementById(id); if(e) e.textContent=val; }
